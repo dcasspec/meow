@@ -1,95 +1,31 @@
 class CopyManga extends ComicSource {
 
-    name = "经典（综合版）"
+    name = "拷贝漫画"
 
     key = "copy_manga"
 
-    version = "1.4.2"
+    version = "1.4.1"
 
     minAppVersion = "1.6.0"
 
     url = "https://cdn.jsdelivr.net/gh/venera-app/venera-configs@main/copy_manga.js"
 
-    async updateReqIdBackground() {
-        const reqIdUrl = "https://marketing.aiacgn.com/api/v2/adopr/query3/?format=json&ident=200100001";
-
-        try {
-            const response = await Network.get(reqIdUrl, {
-                ...this.headers,
-                "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
-                "accept": "application/json",
-                "accept-encoding": "gzip",
-            });
-
-            if (response.status === 200) {
-                const data = JSON.parse(response.body);
-                const reqId = data.results.request_id;
-
-                this.saveData('_reqId_cache', reqId);
-                this.saveData('_reqId_timestamp', Date.now());
-            }
-        } catch (e) {
-
-        }
-    }
-
-    async updateReqIdSync() {
-        const cacheKey = '_reqId_cache';
-        const timeKey = '_reqId_timestamp';
-        const oldReqId = this.loadData(cacheKey);
-
-        const reqIdUrl = "https://marketing.aiacgn.com/api/v2/adopr/query3/?format=json&ident=200100001";
-
-        try {
-            const response = await Network.get(reqIdUrl, {
-                ...this.headers,
-                "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
-                "accept": "application/json",
-                "accept-encoding": "gzip",
-            });
-
-            if (response.status === 200) {
-                const data = JSON.parse(response.body);
-                const reqId = data.results.request_id;
-
-                this.saveData(cacheKey, reqId);
-                this.saveData(timeKey, Date.now());
-
-                return reqId;
-            }
-        } catch (e) {
-            return oldReqId || "";
-        }
-
-        return oldReqId || "";
-    }
-
     async getReqID() {
         if (this.copyRegion === "0") {
             return "";
         }
+        const reqIdUrl = "https://marketing.aiacgn.com/api/v2/adopr/query3/?format=json&ident=200100001";
+        let reqId = "";
+        try {
+            const response = await Network.get(reqIdUrl, this.headers);
 
-        const cacheKey = '_reqId_cache';
-        const timeKey = '_reqId_timestamp';
-
-        const cachedReqId = this.loadData(cacheKey);
-        const cachedTime = this.loadData(timeKey) || 0;
-        const now = Date.now();
-
-        const ONE_HOUR = 60 * 60 * 1000;
-        const TWO_MIN = 2 * 60 * 1000;
-
-        if (cachedReqId && (now - cachedTime < ONE_HOUR)) {
-            if (now - cachedTime > TWO_MIN) {
-                setTimeout(
-                    () => this.updateReqIdBackground(),
-                    Math.floor(Math.random() * 3000)
-                );
+            if (response.status === 200) {
+                const data = JSON.parse(response.body);
+                reqId = data.results.request_id;
             }
-            return cachedReqId;
+        } catch (e) {
         }
-
-        return await this.updateReqIdSync();
+        return reqId;
     }
 
     get headers() {
@@ -270,7 +206,7 @@ class CopyManga extends ComicSource {
     /// explore pages
     explore = [
         {
-            title: "经典（综合版）",
+            title: "拷贝漫画",
             type: "singlePageWithMultiPart",
             load: async () => {
                 let dataStr = await Network.get(
@@ -386,10 +322,10 @@ class CopyManga extends ComicSource {
     }
 
     category = {
-        title: "经典（综合版）",
+        title: "拷贝漫画",
         parts: [
             {
-                name: "经典（综合版）",
+                name: "拷贝漫画",
                 type: "fixed",
                 categories: ["排行"],
                 categoryParams: ["ranking"],
@@ -689,9 +625,9 @@ class CopyManga extends ComicSource {
 
     comic = {
         loadInfo: async (id) => {
-            let reqId = await this.getReqID();
             let getChapters = async (id, groups) => {
                 let fetchSingle = async (id, path) => {
+                    let reqId = await this.getReqID();
                     let res = await Network.get(
                         `${this.apiUrl}/api/v3/comic/${id}/group/${path}/chapters?limit=100&offset=0&in_mainland=true&request_id=${reqId}`,
                         this.headers
@@ -765,7 +701,7 @@ class CopyManga extends ComicSource {
                 }
                 return JSON.parse(res.body).results.collect != null;
             }
-
+            let reqId = await this.getReqID();
             let results = await Promise.all([
                 Network.get(
                     `${this.apiUrl}/api/v3/comic2/${id}?in_mainland=true&request_id=${reqId}&platform=3`,
