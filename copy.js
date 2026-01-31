@@ -1,6 +1,6 @@
 class CopyManga extends ComicSource {
 
-    name = "拷贝漫画"
+    name = "综合（经典版）"
 
     key = "copy_manga"
 
@@ -206,7 +206,7 @@ class CopyManga extends ComicSource {
     /// explore pages
     explore = [
         {
-            title: "拷贝漫画",
+            title: "综合（经典版）",
             type: "singlePageWithMultiPart",
             load: async () => {
                 let dataStr = await Network.get(
@@ -322,10 +322,10 @@ class CopyManga extends ComicSource {
     }
 
     category = {
-        title: "拷贝漫画",
+        title: "综合（经典版）",
         parts: [
             {
-                name: "拷贝漫画",
+                name: "综合（经典版）",
                 type: "fixed",
                 categories: ["排行"],
                 categoryParams: ["ranking"],
@@ -697,7 +697,7 @@ class CopyManga extends ComicSource {
             let getFavoriteStatus = async (id) => {
                 let res = await Network.get(`${this.apiUrl}/api/v3/comic2/${id}/query`, this.headers);
                 if (res.status !== 200) {
-                    throw `Invalid status code: ${res.status}`;
+                    throw `Invalid status code: ${res.status}`
                 }
                 return JSON.parse(res.body).results.collect != null;
             }
@@ -837,7 +837,7 @@ class CopyManga extends ComicSource {
                 if (res.status === 210) {
                     throw "210：注冊用戶一天可以發5條評論"
                 }
-                throw `Invalid status code: ${res.status}`;
+                throw `Invalid status code: ${res.status}`
             }
 
             let data = JSON.parse(res.body);
@@ -881,7 +881,7 @@ class CopyManga extends ComicSource {
             }
 
             if (res.status !== 200) {
-                throw `Invalid status code: ${res.status}`;
+                throw `Invalid status code: ${res.status}`
             } else {
                 return "ok"
             }
@@ -894,7 +894,7 @@ class CopyManga extends ComicSource {
             );
 
             if (res.status !== 200) {
-                throw `Invalid status code: ${res.status}`;
+                throw `Invalid status code: ${res.status}`
             }
 
             let data = JSON.parse(res.body);
@@ -937,7 +937,7 @@ class CopyManga extends ComicSource {
                 if (res.status === 210) {
                     throw `210:评论过于频繁或评论内容过短过长`;
                 }
-                throw `Invalid status code: ${res.status}`;
+                throw `Invalid status code: ${res.status}`
             } else {
                 return "ok"
             }
@@ -1075,7 +1075,7 @@ class CopyManga extends ComicSource {
         let currentArr = current.split('.')
         for (let i = 0; i < 3; i++) {
             if (parseInt(currentArr[i]) < parseInt(targetArr[i])) {
-                return false
+                return false;
             }
         }
         return true
