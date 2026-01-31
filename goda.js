@@ -13,7 +13,7 @@ class Goda extends ComicSource {
   minAppVersion = "1.4.0"
 
   // update url
-  url = "https://git.nyne.dev/nyne/venera-configs/raw/branch/main/goda.js"
+  url = "https://cdn.jsdelivr.net/gh/venera-app/venera-configs@main/goda.js"
 
   settings = {
     domains: {
@@ -70,7 +70,7 @@ class Goda extends ComicSource {
     {
       // title of the page.
       // title is used to identify the page, it should be unique
-      title: "国漫（推荐版）",
+      title: this.name,
 
       /// multiPartPage or multiPageComicList or mixed
       type: "multiPartPage",
@@ -109,7 +109,7 @@ class Goda extends ComicSource {
   // categories
   category = {
     /// title of the category page, used to identify the page, it should be unique
-    title: "国漫（推荐版）",
+    title: this.name,
     parts: [
       {
         name: "类型",
