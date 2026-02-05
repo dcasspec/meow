@@ -473,19 +473,23 @@ class NewComicSource extends ComicSource {
             type: "select",
             options: [
                 {
-                    value: 'https://tu.mwzu.cc',
-                    text: 'stable'
+                    value: 'https://svip.mwtt.cc',
+                    text: 'svip'
+                },
+                {
+                    value: 'https://tu.mhttu.cc',
+                    text: 'mhttu'
+                },
+                {
+                    value: 'https://fm.mwtt.cc',
+                    text: 'fm'
                 },
                 {
                     value: 'https://tu.mwzu.cc',
-                    text: 'high'
-                },
-                {
-                    value: 'https://tu.mwzu.cc',
-                    text: 'standby'
+                    text: 'mwzu'
                 }
             ],
-            default: 'https://tu.mwzu.cc'
+            default: 'https://svip.mwtt.cc'
         }
     }
 }
