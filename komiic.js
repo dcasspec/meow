@@ -6,18 +6,18 @@ class Komiic extends ComicSource {
     // 唯一标识符
     key = "Komiic"
 
-    version = "1.0.3"
+    version = "1.0.4"
 
     minAppVersion = "1.0.0"
 
     // 更新链接
-    url = "https://gitee.com/lingximh/lingxi-config/raw/master/komiic.js"
+    url = "https://cdn.jsdelivr.net/gh/venera-app/venera-configs@main/komiic.js"
 
     get headers() {
         let token = this.loadData('token')
         let headers = {
             'Referer': 'https://komiic.com/',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36',
             'Content-Type': 'application/json'
         }
         if (token) {
@@ -27,8 +27,6 @@ class Komiic extends ComicSource {
     }
 
     async queryJson(query) {
-        let operationName = query["operationName"]
-
         let res = await Network.post(
             'https://komiic.com/api/query',
             this.headers,
@@ -42,8 +40,11 @@ class Komiic extends ComicSource {
         let json = JSON.parse(res.body)
 
         if (json.errors != undefined) {
-            if(json.errors[0].message.toString().indexOf('token is expired') >= 0){
-                throw 'Login expired'
+            const errorInfo = json.errors[0].message.toString();
+            if ((errorInfo.indexOf('token is expired') >= 0) || (errorInfo.indexOf('no token') >= 0)) {
+                const accountData = this.loadData("account");
+                await this.account.login(accountData[0], accountData[1]);
+                return await this.queryJson(query);
             }
             throw json.errors[0].message
         }
@@ -85,6 +86,7 @@ class Komiic extends ComicSource {
 
             let updateTime = new Date(comic.dateUpdated)
             let description = getTimeDifference(updateTime)
+            let formatedTime = `${updateTime.getFullYear()}-${updateTime.getMonth() + 1}-${updateTime.getDate()}`
 
             return {
                 id: comic.id,
@@ -92,7 +94,8 @@ class Komiic extends ComicSource {
                 subTitle: author,
                 cover: comic.imageUrl,
                 tags: tags,
-                description: description
+                description: description,
+                updateTime: formatedTime
             }
         }
 
@@ -173,7 +176,44 @@ class Komiic extends ComicSource {
     /// 分类漫画页面, 即点击分类标签后进入的页面
     categoryComics = {
         load: async (category, param, options, page) => {
-            return await this.queryComics({ "operationName": "comicByCategories", "variables": { "categoryId": param, "pagination": { "limit": 30, "offset": (page - 1) * 30, "orderBy": options[0], "asc": false, "status": options[1] } }, "query": "query comicByCategories($categoryId: [ID!]!, $pagination: Pagination!) {\n  comicByCategories(categoryId: $categoryId, pagination: $pagination) {\n    id\n    title\n    status\n    year\n    imageUrl\n    authors {\n      id\n      name\n      __typename\n    }\n    categories {\n      id\n      name\n      __typename\n    }\n    dateUpdated\n    monthViews\n    views\n    favoriteCount\n    lastBookUpdate\n    lastChapterUpdate\n    __typename\n  }\n}" })
+          let variables = {
+              pagination: {
+                  limit: 30,
+                  offset: (page - 1) * 30,
+                  orderBy: options[0],
+                  asc: false,
+                  status: options[1]
+              }
+          };
+          
+          if (param !== '0') {
+              variables.categoryId = [param];
+          } else {
+              variables.categoryId = [];
+          }
+
+          return await this.queryComics({ 
+              "operationName": "comicByCategories",
+              "variables": variables,
+              "query": `query comicByCategories($categoryId: [ID!]!, $pagination: Pagination!) {
+                  comicByCategories(categoryId: $categoryId, pagination: $pagination) {
+                      id
+                      title
+                      status
+                      year
+                      imageUrl
+                      authors { id name __typename }
+                      categories { id name __typename }
+                      dateUpdated
+                      monthViews
+                      views
+                      favoriteCount
+                      lastBookUpdate
+                      lastChapterUpdate
+                      __typename
+                  }
+              }`
+          })
         },
         // 提供选项
         optionList: [
@@ -278,7 +318,7 @@ class Komiic extends ComicSource {
             await this.queryJson(query)
             return "ok"
         },
-        // 加载收藏夹, 仅当multiFolder为true时有效
+        // 加载收藏夹, 仅当multiFolder: true时有效
         // 当comicId不为null时, 需要同时返回包含该漫画的收藏夹
         loadFolders: async (comicId) => {
             let json = await this.queryJson({ "operationName": "myFolder", "variables": {}, "query": "query myFolder {\n  folders {\n    id\n    key\n    name\n    views\n    comicCount\n    dateCreated\n    dateUpdated\n    __typename\n  }\n}" })
@@ -342,7 +382,7 @@ class Komiic extends ComicSource {
                 let all = json.data.chaptersByComicId
                 let books = [], chapters = []
                 all.forEach((c) => {
-                    if(c.type == 'book') {
+                    if(c.type === 'book') {
                         books.push(c)
                     } else {
                         chapters.push(c)
@@ -375,12 +415,12 @@ class Komiic extends ComicSource {
                 // map<string, string[]> 标签
                 tags: {
                     "作者": [info.subTitle],
-                    "更新": [info.description],
                     "标签": info.tags
                 },
                 // map<string, string>?, key为章节id, value为章节名称
                 chapters: results[1],
-                recommend: results[0].comics
+                recommend: results[0].comics,
+                updateTime: info.updateTime,
             }
         },
         // 获取章节图片
@@ -396,8 +436,8 @@ class Komiic extends ComicSource {
         onImageLoad: (url, comicId, epId) => {
             return {
                 headers: {
-                    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-                    'referer': `https://komiic.com/comic/${comicId}/chapter/${epId}/images/all`
+                    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36',
+                    'referer': `https://komiic.com/comic/${comicId}/chapter/${epId}/images/all?page=2`
                 }
             }
         },
