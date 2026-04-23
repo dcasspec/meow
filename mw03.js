@@ -11,15 +11,15 @@ class ManWaAi extends ComicSource {
   minAppVersion = "1.4.0";
   url = "";
 
-  // 核心API地址（按新发布页更新，优先使用稳定域名）
+  // ✅ 按你提供的最新域名修改，主域名更换，原域名移到最后备用
   baseDomain = "https://manwaku.com";
   backupDomains = [
-    "shturl.cc/YsyzZEBe5",
-    "shturl.cc/4k4MQMAW",
-    "shturl.cc/lDeZhJBO",
+    "https://www.mwxi.cc",
+    "https://manwadu.cc",
+    "https://manwalu.cc",
     "https://mwmw.cc",
-    "shturl.cc/GHNhQkqwVa5L",
-    "shturl.cc/mdUucRmN"
+    "https://www.manwaai.cc",
+    "https://manwaji.cc" // 原主域名，移到最后作为备用
   ];
 
   // 备用图源（保持不变）
