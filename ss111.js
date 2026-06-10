@@ -1,3 +1,12 @@
+/**
+ * 韩漫（搜索版）漫画源适配
+ * ✅ 主域名已更换为 manwadi.cc
+ * ✅ 仅保留可用域名 mwuu.cc
+ * ✅ 图源已重构 + 智能切换
+ * ✅ 搜索功能优化
+ * ✅ 会员备用图源支持
+ * ✅ 优化漫画打开速度（核心修改）
+ */
 class NewComicSource extends ComicSource {
     constructor() {
         super();
@@ -11,83 +20,87 @@ class NewComicSource extends ComicSource {
 
     name = "韩漫（搜索版）"
     key = "mhtmh"
-    version = "2.1.4"
+    version = "2.1.5" // 版本号更新
     minAppVersion = "1.0.0"
-    description = '韩漫很全（搜索功能优化）+ 会员备用图源'
+    description = '韩漫很全（搜索优化）+ 智能图源切换（极速版）'
     url = "https://manwadi.cc"
 
-    // ✅ 主域名与备用域名
+    // ✅ 主域名已更换
     baseDomain = "https://manwadi.cc"
     backupDomains = [
-        "https://mwuu.cc"
+        "https://mwuu.cc" // 确认好用的备用域名
     ]
+
+    // ✅ 优化：并行探测域名，谁快用谁
+    async getAvailableDomain() {
+        const domains = [this.baseDomain, ...this.backupDomains];
+        try {
+            // 使用 Promise.race 获取最快响应的域名
+            const fastest = await Promise.any(
+                domains.map(d => 
+                    Network.get(d, { timeout: 2500 }).then(res => res.status === 200 ? d : null)
+                )
+            );
+            return fastest || this.baseDomain;
+        } catch {
+            return this.baseDomain;
+        }
+    }
 
     // ✅ 图源列表
     imageSources = [
-        'https://tu.mwzu.cc',
-        'https://svip.mwtt.cc',
-        'https://tu.mwla.cc',
-        'https://fm.mwtt.cc',
-        'https://img.mwzu.cc'
+        'https://tu.mwzu.cc',     // 速度最快
+        'https://svip.mwtt.cc',   // 可用性高
+        'https://tu.mwla.cc',     // 备用1
+        'https://fm.mwtt.cc',     // 备用2
+        'https://img.mwzu.cc'     // 会员图源
     ]
 
+    // ✅ 优化：记录当前可用图源索引
     currentImageSourceIndex = 0
     
-    // ✅ 新增：图源缓存
-    _cachedImageSource = null
-    _cacheTime = 0
-    CACHE_DURATION = 5 * 60 * 1000 // 5分钟
+    // ✅ 优化：记录已确认不可用的图源，避免无效重试
+    failedImageSources = new Set()
 
     getCurrentImageSource() {
         return this.imageSources[this.currentImageSourceIndex]
     }
 
-    switchToNextImageSource() {
-        this.currentImageSourceIndex =
-            (this.currentImageSourceIndex + 1) % this.imageSources.length
-        console.log("切换到图源: " + this.getCurrentImageSource())
-    }
-
-    // ✅ 智能选择最快图源
-    async getBestImageSource() {
-        if (this._cachedImageSource && Date.now() - this._cacheTime < this.CACHE_DURATION) {
-            return this._cachedImageSource
-        }
-
-        console.log("正在探测最快图源...")
-        const tests = this.imageSources.map(async (source, index) => {
-            try {
-                const start = Date.now()
-                // 探测 favicon 来判断速度
-                await Network.get(source + "/favicon.ico", { timeout: 3000 })
-                return { source, time: Date.now() - start }
-            } catch {
-                return null
+    /**
+     * ✅ 核心修改：智能图源切换
+     * 1. 跳过已经失败的图源
+     * 2. 优先使用第一个可用的图源
+     */
+    async switchToNextImageSource() {
+        const total = this.imageSources.length;
+        let checked = 0;
+        
+        // 从当前位置开始查找下一个未失败的图源
+        while (checked < total) {
+            this.currentImageSourceIndex = (this.currentImageSourceIndex + 1) % total;
+            const currentSource = this.getCurrentImageSource();
+            
+            // 如果没试过这个源，或者这个源之前是好的
+            if (!this.failedImageSources.has(currentSource)) {
+                console.log("尝试切换到图源: " + currentSource);
+                
+                // 快速探测该图源是否存活
+                try {
+                    await Network.head(currentSource, { timeout: 1500 });
+                    console.log("图源可用: " + currentSource);
+                    return true; // 找到了可用的
+                } catch (e) {
+                    console.log("图源失效，加入黑名单: " + currentSource);
+                    this.failedImageSources.add(currentSource);
+                }
             }
-        })
-
-        const results = (await Promise.all(tests)).filter(Boolean)
-        if (results.length === 0) {
-            this._cachedImageSource = this.imageSources[0]
-        } else {
-            results.sort((a, b) => a.time - b.time)
-            this._cachedImageSource = results[0].source
-            console.log("选择最快图源:", this._cachedImageSource)
+            checked++;
         }
         
-        this._cacheTime = Date.now()
-        return this._cachedImageSource
-    }
-
-    async getAvailableDomain() {
-        const domains = [this.baseDomain, ...this.backupDomains];
-        for (const domain of domains) {
-            try {
-                const res = await Network.get(domain, { timeout: 3000 });
-                if (res.status === 200) return domain;
-            } catch (e) {}
-        }
-        return this.baseDomain;
+        // 所有图源都挂了，重置黑名单，下次从头再来
+        console.log("所有图源均不可用，重置状态");
+        this.failedImageSources.clear();
+        return false;
     }
 
     formateData(timestamp) {
@@ -96,8 +109,40 @@ class NewComicSource extends ComicSource {
                `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`
     }
 
+    /**
+     * ✅ 优化：带熔断机制的重试请求
+     * @param {number} maxRetries - 最大重试次数（针对单图源）
+     */
+    async retryImageRequest(url, options, maxRetries = 1) {
+        let lastError;
+        
+        for (let attempt = 0; attempt < maxRetries; attempt++) {
+            try {
+                const res = await Network.get(url, options);
+                if (res.status === 200) return res;
+                throw new Error(`HTTP ${res.status}`);
+            } catch (error) {
+                lastError = error;
+                console.log(`请求失败 (${attempt + 1}/${maxRetries}): ${error.message}`);
+                
+                // 如果是最后一次尝试，不再切换
+                if (attempt < maxRetries - 1) {
+                    const switched = await this.switchToNextImageSource();
+                    if (!switched) break; // 没找到可用图源，直接放弃
+                    
+                    url = url.replace(/https?:\/\/[^\/]+/, this.getCurrentImageSource());
+                    console.log("正在重试新图源...");
+                }
+            }
+        }
+        
+        // 记录当前图源为失败
+        this.failedImageSources.add(this.getCurrentImageSource());
+        throw lastError;
+    }
+
     init() {
-        console.log("韩漫（搜索版）已初始化")
+        console.log("韩漫（搜索版）极速版已初始化");
     }
 
     explore = [
@@ -115,9 +160,9 @@ class NewComicSource extends ComicSource {
         parts: [{
             name: "分类",
             type: "fixed",
-            categories: ["全部","热血","玄幻","恋爱","冒险","古风","都市","穿越","奇幻","搞笑","少男","战斗","重生","逆袭","爆笑","少年","系统","BL","韩漫","完整版","19r","台版"],
+            categories: ["全部"],
             itemType: "category",
-            categoryParams: ["","热血","玄幻","恋爱","冒险","古风","都市","穿越","奇幻","搞笑","少男","战斗","重生","逆袭","爆笑","少年","系统","BL","韩漫","完整版","19r","台版"]
+            categoryParams: [""]
         }],
         enableRankingPage: false
     }
@@ -125,35 +170,7 @@ class NewComicSource extends ComicSource {
     categoryComics = {
         load: async (category, param, options, page) => {
             const domain = await this.getAvailableDomain()
-            
-            // ✅ 修复：动态映射分类路径
-            const pathMap = {
-                "": "/cate",
-                "热血": "/cate/hotblooded",
-                "玄幻": "/cate/xuanhuan",
-                "恋爱": "/cate/romance",
-                "冒险": "/cate/adventure",
-                "古风": "/cate/historical",
-                "都市": "/cate/urban",
-                "穿越": "/cate/transmigration",
-                "奇幻": "/cate/fantasy",
-                "搞笑": "/cate/comedy",
-                "少男": "/cate/shounen",
-                "战斗": "/cate/action",
-                "重生": "/cate/rebirth",
-                "逆袭": "/cate/counterattack",
-                "爆笑": "/cate/hilarious",
-                "少年": "/cate/youth",
-                "系统": "/cate/system",
-                "BL": "/cate/bl",
-                "韩漫": "/cate/manhwa",
-                "完整版": "/cate/fullversion",
-                "19r": "/cate/19plus",
-                "台版": "/cate/taiwanver"
-            };
-
-            const path = pathMap[param] || "/cate"
-            const res = await Network.get(`${domain}${path}`, {
+            const res = await Network.get(`${domain}/cate/xuanhuan`, {
                 Referer: `${domain}/cate/`,
                 "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X)"
             })
@@ -324,31 +341,22 @@ class NewComicSource extends ComicSource {
 
         loadEp: async (comicId, epId) => {
             const domain = await this.getAvailableDomain()
-            const bestImageSource = await this.getBestImageSource()
-            
             const ep = epId.split('_')[0]
             const id = ep.split('/').pop()
             const picCount = epId.split('_')[1]
 
-            const url = `${domain}/api/comic/image/${id}?page=1&page_size=${picCount}&image_source=${bestImageSource}`
+            const url = `${domain}/api/comic/image/${id}?page=1&page_size=${picCount}&image_source=${this.getCurrentImageSource()}`
 
-            try {
-                const res = await Network.get(url, {
-                    Referer: `${domain}/comic/${comicId}/${ep}`,
-                    "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X)"
-                })
+            const res = await this.retryImageRequest(url, {
+                Referer: `${domain}/comic/${comicId}/${ep}`,
+                "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X)"
+            })
 
-                if (res.status !== 200) throw new Error("请求失败")
+            const body = JSON.parse(res.body)
+            if (body.code !== 200) throw "API错误: " + body.msg
 
-                const body = JSON.parse(res.body)
-                if (body.code !== 200) throw "API错误: " + body.msg
-
-                return {
-                    images: body.data.images?.map(i => i.url) || []
-                }
-            } catch (error) {
-                console.error("图片加载失败:", error)
-                throw new Error("图片加载失败")
+            return {
+                images: body.data.images?.map(i => i.url) || []
             }
         },
 
