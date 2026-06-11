@@ -11,7 +11,7 @@ class NewComicSource extends ComicSource {  // 首行必须为class...
     minAppVersion = "1.0.0"
 
     // 更新链接
-    url = ""
+    url = "https://github.com/dcasspec/meow/raw/refs/heads/main/dd.js"
 
     /// APP启动时或者添加/更新漫画源时执行此函数
     init() {
