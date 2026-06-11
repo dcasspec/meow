@@ -8,7 +8,7 @@ class Ikm extends ComicSource {
 
     version = "1.0.1"
 
-    minAppVersion = "1.0.0"
+    minAppVersion = "1.0.1"
 
     // 更新链接
     url = "https://gitee.com/lingximh/lingxi-config/raw/master/ikmmh.js"
