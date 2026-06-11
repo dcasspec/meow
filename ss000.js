@@ -20,7 +20,7 @@ class NewComicSource extends ComicSource {
 
     name = "韩漫（搜索版）"
     key = "mhtmh"
-    version = "2.1.5" // 版本号更新
+    version = "2.1.6" // 版本号更新
     minAppVersion = "1.0.0"
     description = '韩漫很全（搜索优化）+ 智能图源切换（极速版）'
     url = "https://github.com/dcasspec/meow/raw/refs/heads/main/ss000.js"
