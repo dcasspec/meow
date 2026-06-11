@@ -23,7 +23,7 @@ class NewComicSource extends ComicSource {
     version = "2.1.5" // 版本号更新
     minAppVersion = "1.0.0"
     description = '韩漫很全（搜索优化）+ 智能图源切换（极速版）'
-    url = "https://manwadi.cc"
+    url = "https://github.com/dcasspec/meow/raw/refs/heads/main/ss111.js"
 
     // ✅ 主域名已更换
     baseDomain = "https://manwadi.cc"
