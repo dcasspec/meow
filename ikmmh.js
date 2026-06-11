@@ -6,7 +6,7 @@ class Ikm extends ComicSource {
     // 唯一标识符
     key = "ikmmh"
 
-    version = "1.0.0"
+    version = "1.0.1"
 
     minAppVersion = "1.0.0"
 
