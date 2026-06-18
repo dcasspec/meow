@@ -29,7 +29,7 @@ class Goda extends ComicSource {
     image: {
       title: "图片域名",
       type: "input",
-      default: "t40-1-4.g-mh.online"
+      default: "t40-2-1.g-mh.online"
     }
   }
 
