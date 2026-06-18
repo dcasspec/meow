@@ -6,13 +6,13 @@
 class ManWaAi extends ComicSource {
   name = "综合（推荐版）";
   key = "manwaai";
-  version = "1.0.9";
+  version = "1.1.0";
   minAppVersion = "1.4.0";
   url = "https://github.com/dcasspec/meow/raw/refs/heads/main/zh111.js";
 
   // ✅ 仅保留确认可用的域名
   backupDomains = [
-    "https://manwadi.cc",
+    "https://manwana.cc",
     "https://mwuu.cc"
   ];
 
