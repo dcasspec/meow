@@ -1,35 +1,34 @@
 /**
  * 漫蛙漫画源适配 Venera
- * ✅ 仅保留可用域名 + 域名缓存加速
- * ✅ 分类 / 搜索 / 章节逻辑完全不变
+ * ✅ 域名按速度排序，图源保留3个最快线路
  */
 class ManWaAi extends ComicSource {
   name = "综合（推荐版）";
   key = "manwaai";
-  version = "1.1.0";
-  minAppVersion = "1.4.1";
+  version = "1.0.14";
+  minAppVersion = "1.4.0";
   url = "https://github.com/dcasspec/meow/raw/refs/heads/main/zh000.js";
 
-  // ✅ 仅保留确认可用的域名
+  // ✅ 域名按速度排序：manwana.cc（最快）→ manwadi.cc → mwuu.cc
   backupDomains = [
-    "https://manwana.cc",
-    "https://mwuu.cc"
+    "https://manwana.cc",   // 最新最快，放首位
+    "https://manwadi.cc",  // 次优
+    "https://mwuu.cc"       // 备用
   ];
 
-  // ✅ 图源保持不变
+  // ✅ 保留3个最快图源（来自官方页面定义）
   imageSources = [
-    "https://tu.mwzu.cc",
-    "https://svip.mwtt.cc",
-    "https://tu.mwla.cc",
-    "https://fm.mwtt.cc",
-    "https://img.mwzu.cc"
+    "https://fm.mwzu.cc",    // 线路1（最快）
+    "https://svip.mwtt.cc",  // 线路2（稳定）
+    "https://img.mwzu.cc"    // 线路3（常用）
   ];
 
   currentImageSourceIndex = 0;
-
-  // ✅ 域名缓存（关键提速点）
   _cachedDomain = null;
 
+  /* ======================
+     ✅ 保守探测：仅测首页200（确保分类必开）
+     ====================== */
   async getAvailableDomain() {
     if (this._cachedDomain) return this._cachedDomain;
 
@@ -69,7 +68,7 @@ class ManWaAi extends ComicSource {
     ) => {
       if (params) {
         const paramsStr = Object.keys(params)
-          .map((k) => `${k}=${encodeURIComponent(params[k])}`)
+          .map(k => `${k}=${encodeURIComponent(params[k])}`)
           .join("&");
         url += `?${paramsStr}`;
       }
