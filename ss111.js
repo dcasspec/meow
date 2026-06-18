@@ -1,5 +1,5 @@
 class NewComicSource extends ComicSource {
-    name = "桃子漫画"
+    name = "韩漫（搜索版）"
     key = "mhtmh"
     version = "2.0.9"
     minAppVersion = "1.0.0"
@@ -78,7 +78,7 @@ class NewComicSource extends ComicSource {
     ]
 
     category = {
-        title: "桃子漫画",
+        title: "韩漫（搜索版）",
         parts: [
             {
                 name: "分类",
