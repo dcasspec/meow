@@ -1,32 +1,18 @@
 class NewComicSource extends ComicSource {
     name = "韩漫（搜索版）"
     key = "mhtmh"
-    version = "2.1.0" // 版本号+1，强制Venera重载以清除旧缓存
+    version = "2.1.1"
     minAppVersion = "1.0.0"
     description = '韩漫很全|域名/图源已更新|分类URL动态化'
     url = "https://github.com/dcasspec/meow/raw/refs/heads/main/ss111.js"
 
-    // ✅ 新增：多域名自动切换配置
+    // ✅ 只保留一个域名（不再探测）
     backupDomains = [
-        "https://manwayu.cc",   // 新域名1
-        "https://manware.cc",  // 新域名2
-        "https://mwuu.cc"       // 新域名3
+        "https://manwayu.cc"
     ];
     _cachedDomain = null;
 
     async getAvailableDomain() {
-        if (this._cachedDomain) return this._cachedDomain;
-        for (const domain of this.backupDomains) {
-            try {
-                const res = await Network.sendRequest(
-                    "GET", domain, {}, null, { timeout: 3000 }
-                );
-                if (res.status === 200) {
-                    this._cachedDomain = domain;
-                    return domain;
-                }
-            } catch (_) {}
-        }
         return this.backupDomains[0];
     }
 
@@ -34,7 +20,7 @@ class NewComicSource extends ComicSource {
 
     account = {
         login: async (account, pwd) => {
-            const domain = await this.getAvailableDomain();
+            const domain = this.backupDomains[0];
             let res = await Network.post(`${domain}/api/user/userarr/login`, {
                 "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
                 "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1"
@@ -69,7 +55,7 @@ class NewComicSource extends ComicSource {
         return true
     }
 
-    formateData(timestamp){
+    formateData(timestamp) {
         const date = new Date(timestamp * 1000);
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -85,7 +71,7 @@ class NewComicSource extends ComicSource {
             title: this.name,
             type: "singlePageWithMultiPart",
             load: async () => {
-                const domain = await this.getAvailableDomain();
+                const domain = this.backupDomains[0];
                 let url = `${domain}/cate/19plus?page=1`
                 let res = await Network.get(url, {
                     "Referer": `${domain}/cate/`,
@@ -119,7 +105,7 @@ class NewComicSource extends ComicSource {
 
     categoryComics = {
         load: async (category, param, options, page) => {
-            const domain = await this.getAvailableDomain();
+            const domain = this.backupDomains[0];
             let sitePage = page + 1;
             let url = `${domain}/cate/19plus?page=${sitePage}`;
 
@@ -138,7 +124,7 @@ class NewComicSource extends ComicSource {
 
     search = {
         load: async (keyword, options, page) => {
-            const domain = await this.getAvailableDomain();
+            const domain = this.backupDomains[0];
             let res = await Network.get(`${domain}/api/search?keyword=${encodeURIComponent(keyword)}&type=mh&page=${page}&pageSize=20`, {
                 "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1"
             })
@@ -181,7 +167,7 @@ class NewComicSource extends ComicSource {
     favorites = {
         multiFolder: false,
         addOrDelFavorite: async (comicId, folderId, isAdding) => {
-            const domain = await this.getAvailableDomain();
+            const domain = this.backupDomains[0];
             let id = comicId.split("/")[4]
             if (isAdding) {
                 let comicInfoRes = await Network.get(`${domain}${comicId}`, {
@@ -211,7 +197,7 @@ class NewComicSource extends ComicSource {
             }
         },
         loadComics: async (page, folder) => {
-            const domain = await this.getAvailableDomain();
+            const domain = this.backupDomains[0];
             let res = await Network.post(`${domain}/api/user/bookcase/ajax`, {
                 "Content-Type": "application/x-www-form-urlencoded",
                 "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1"
@@ -232,7 +218,7 @@ class NewComicSource extends ComicSource {
 
     comic = {
         loadInfo: async (id) => {
-            const domain = await this.getAvailableDomain();
+            const domain = this.backupDomains[0];
             if (!id.includes('comic')) id = `/comic/${id}`
             let res = await Network.get(`${domain}${id}`, {
                 "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1"
@@ -269,7 +255,7 @@ class NewComicSource extends ComicSource {
             }
         },
         loadEp: async (comicId, epId) => {
-            const domain = await this.getAvailableDomain();
+            const domain = this.backupDomains[0];
             let ep = epId.split('_')[0]
             let id = ep.split('/').pop()
             let picCount = epId.split('_')[1]
@@ -311,17 +297,13 @@ class NewComicSource extends ComicSource {
                 { value: 'baseAPI', text: '基础' },
                 { value: 'webAPI', text: '网页' }
             ],
-            default: 'baseAPI'
+            default: 'webAPI'
         },
         image_source: {
             title: "图源",
             type: "select",
             options: [
-                { value: 'https://tu.mwzu.cc/', text: '图源1' },
-                { value: 'https://svip.mwtt.cc/', text: '图源2' },
-                { value: 'https://tu.mwla.cc/', text: '图源3' },
-                { value: 'https://fm.mwtt.cc/', text: '图源4' },
-                { value: 'https://img.mwzu.cc/', text: '图源5' }
+                { value: 'https://tu.mwzu.cc/', text: '图源1' }
             ],
             default: 'https://tu.mwzu.cc/'
         }
