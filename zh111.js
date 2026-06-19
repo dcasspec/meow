@@ -9,10 +9,10 @@ class ManWaAi extends ComicSource {
   minAppVersion = "1.4.0";
   url = "https://github.com/dcasspec/meow/raw/refs/heads/main/zh111.js";
 
-  // ✅ 域名按速度排序：manwana.cc（最快）→ manwadi.cc → mwuu.cc
+  // ✅ 域名按速度排序：manwayu.cc（最快）→ manware.cc → mwuu.cc
   backupDomains = [
-    "https://manwana.cc",   // 最新最快，放首位
-    "https://manwadi.cc",  // 次优
+    "https://manwayu.cc",   // 最新最快，放首位
+    "https://manware.cc",  // 次优
     "https://mwuu.cc"       // 备用
   ];
 
