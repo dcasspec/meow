@@ -227,7 +227,7 @@ class NewComicSource extends ComicSource {
                 const allSources = [
                     preferred,
                     'https://svip.mwtt.cc/',
-                    'https://tu.mwla.cc/',
+                    'https://mg.mwre.cc/',
                     'https://fm.mwtt.cc/',
                     'https://img.mwzu.cc/'
                 ];
@@ -293,7 +293,7 @@ class NewComicSource extends ComicSource {
             options: [
                 { value: 'https://tu.mwzu.cc/', text: '图源1' },
                 { value: 'https://svip.mwtt.cc/', text: '图源2' },
-                { value: 'https://tu.mwla.cc/', text: '图源3' },
+                { value: 'https://mg.mwre.cc/', text: '图源3' },
                 { value: 'https://fm.mwtt.cc/', text: '图源4' },
                 { value: 'https://img.mwzu.cc/', text: '图源5' }
             ],
