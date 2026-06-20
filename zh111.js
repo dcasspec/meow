@@ -31,7 +31,7 @@ class ManWaAi extends ComicSource {
   imageSources = [
     "https://tu.mwzu.cc",
     "https://svip.mwtt.cc",
-    "https://tu.mwla.cc",
+    "https://mg.mwre.cc",
     "https://fm.mwtt.cc",
     "https://img.mwzu.cc"
   ];
