@@ -1,6 +1,6 @@
 /** @type {import('./_venera_.js')} */
 class Manwa extends ComicSource {
-  name = "漫蛙";
+  name = "推荐2";
   key = "manwa";
   version = "1.1.9";
   minAppVersion = "1.4.0";
@@ -215,7 +215,7 @@ class Manwa extends ComicSource {
   // ---------- Explore ----------
   explore = [
     {
-      title: "漫蛙",
+      title: "推荐2",
       type: "multiPartPage",
       load: async () => {
         const res = await Network.get(this.buildUrl("/rank"), { "User-Agent": Manwa.ua });
@@ -223,7 +223,7 @@ class Manwa extends ComicSource {
         const doc = new HtmlDocument(res.body);
         const els = doc.querySelectorAll("#rankList_2 > a");
         const comics = els.map(el => this.parseComic(el));
-        return [{ title: "推荐", comics }];
+        return [{ title: "推荐2", comics }];
       },
     },
   ];
@@ -308,7 +308,7 @@ class Manwa extends ComicSource {
 
   // ---------- Category ----------
   category = {
-    title: "漫蛙分类",
+    title: "推荐2",
     parts: [
       {
         name: "分类",
@@ -335,7 +335,7 @@ class Manwa extends ComicSource {
           { label: "全部", target: { page: "category", attributes: { category: "gender", param: "-1" } } },
           { label: "一般向", target: { page: "category", attributes: { category: "gender", param: "2" } } },
           { label: "BL向", target: { page: "category", attributes: { category: "gender", param: "0" } } },
-          { label: "禁漫", target: { page: "category", attributes: { category: "gender", param: "1" } } },
+          // 已删除禁漫
           { label: "TL向", target: { page: "category", attributes: { category: "gender", param: "3" } } },
         ],
       },
@@ -391,7 +391,7 @@ class Manwa extends ComicSource {
     },
     optionList: [
       { label: "状态", options: ["-全部", "2-连载中", "1-完结"] },
-      { label: "类型", options: ["_1-全部", "2-一般向", "0-BL向", "1-禁漫", "3-TL向"], notShowWhen: ["gender"] },
+      { label: "类型", options: ["_1-全部", "2-一般向", "0-BL向", "3-TL向"], notShowWhen: ["gender"] }, // 已删除禁漫
       { label: "地区", options: ["-全部", "2-韩国", "3-日漫", "4-国漫", "5-台漫", "6-其他", "1-未分类"], notShowWhen: ["area"] },
       { label: "排序", options: ["_1-最新", "0-最旧", "1-收藏", "2-新漫"] },
     ],
