@@ -133,7 +133,7 @@ class ManWaAi extends ComicSource {
       categories: [
         "全部","热血","玄幻","恋爱","冒险","古风","都市","穿越",
         "奇幻","搞笑","少男","战斗","重生","逆袭","爆笑","少年",
-        "系统","BL","韩漫","完整版","19r","台版"
+        "系统","BL","韩漫","韩漫（完整版）","19r","韩漫（台版）"
       ],
       itemType: "category",
       categoryParams: [
