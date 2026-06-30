@@ -1,6 +1,6 @@
 /**
  * 漫蛙漫画源适配 Venera
- * 极简手动版：零延迟 + 自动故障切换 + 极速优化
+ * 极简手动版：零延迟 + 自动故障切换
  * 维护方式：编辑 backupDomains 数组即可
  */
 class ManWaAi extends ComicSource {
@@ -26,10 +26,6 @@ class ManWaAi extends ComicSource {
 
   // 当前使用的域名索引（自动切换）
   _currentIndex = 0;
-
-  // ========== 搜索缓存（5分钟有效） ==========
-  _searchCache = new Map();
-  _CACHE_TTL = 5 * 60 * 1000;
 
   // ========== 5图源（固定，无需修改） ==========
   imageSources = [
@@ -62,7 +58,7 @@ class ManWaAi extends ComicSource {
   }
 
   // ============================================================
-  //  初始化：封装网络请求与重试 + 域名测速
+  //  初始化：封装网络请求与重试
   // ============================================================
   init() {
     this.fetchJson = async (url, { method = "GET", params, headers, payload } = {}) => {
@@ -79,43 +75,20 @@ class ManWaAi extends ComicSource {
       return JSON.parse(res.body);
     };
 
+    // 自动重试：若请求失败，依次尝试所有域名
     this.requestWithRetry = async (fn, maxRetries = this.backupDomains.length) => {
       for (let attempt = 0; attempt < maxRetries; attempt++) {
         try {
           const domain = this.getAvailableDomain();
           return await fn(domain);
         } catch (e) {
+          // 当前域名失败，切换到下一个
           this.switchToNextDomain();
+          // 如果已经试完所有域名，抛出错误
           if (attempt === maxRetries - 1) throw e;
         }
       }
     };
-
-    this._optimizeDomains();
-  }
-
-  async _optimizeDomains() {
-    try {
-      const results = await Promise.allSettled(
-        this.backupDomains.map(async (domain) => {
-          const start = Date.now();
-          await Network.sendRequest('HEAD', `${domain}/api/home`, {
-            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15'
-          });
-          return { domain, latency: Date.now() - start };
-        })
-      );
-      
-      const sorted = results
-        .filter(r => r.status === 'fulfilled')
-        .sort((a, b) => a.value.latency - b.value.latency)
-        .map(r => r.value.domain);
-      
-      if (sorted.length > 0) {
-        this.backupDomains = sorted;
-        this._currentIndex = 0;
-      }
-    } catch (_) {}
   }
 
   // ============================================================
@@ -160,7 +133,7 @@ class ManWaAi extends ComicSource {
       categories: [
         "全部","热血","玄幻","恋爱","冒险","古风","都市","穿越",
         "奇幻","搞笑","少男","战斗","重生","逆袭","爆笑","少年",
-        "系统","BL","韩漫","韩漫（完整版）","19r","韩漫（台版）"
+        "系统","BL","韩漫","完整版","19r","台版"
       ],
       itemType: "category",
       categoryParams: [
@@ -234,20 +207,11 @@ class ManWaAi extends ComicSource {
   };
 
   // ============================================================
-  //  🚀 搜索（添加缓存，秒出）
+  //  搜索
   // ============================================================
   search = {
     load: async (keyword, options, page) => {
-      const cacheKey = `${keyword}_${page}`;
-      if (this._searchCache.has(cacheKey)) {
-        const cached = this._searchCache.get(cacheKey);
-        if (Date.now() - cached.time < this._CACHE_TTL) {
-          return cached.data;
-        }
-        this._searchCache.delete(cacheKey);
-      }
-
-      const result = await this.requestWithRetry(async (domain) => {
+      return await this.requestWithRetry(async (domain) => {
         const url = `${domain}/api/search`;
         const params = {
           keyword: String(keyword || ""),
@@ -268,9 +232,6 @@ class ManWaAi extends ComicSource {
         }));
         return { comics, maxPage: Math.ceil(data.total / 20) || 1 };
       });
-
-      this._searchCache.set(cacheKey, { data: result, time: Date.now() });
-      return result;
     },
   };
 
@@ -284,125 +245,59 @@ class ManWaAi extends ComicSource {
         const res = await this.fetchJson(url);
         const data = res.data;
         if (!data) throw new Error("漫画数据为空");
-        
         const chapters = new Map();
-        let totalChapters = 0;
-        let hasMoreChapters = false;
-        
-        try {
-          const firstPage = await this.fetchJson(`${domain}/api/comic/chapter`, {
-            params: { comicId: data.id, page: 1, pageSize: 50 },
+        let page = 1;
+        while (true) {
+          const r = await this.fetchJson(`${domain}/api/comic/chapter`, {
+            params: { comicId: data.id, page, pageSize: 50 },
           });
-          
-          const list = firstPage.data || [];
+          const list = r.data || [];
+          if (!list.length) break;
           list.forEach(i => {
             if (i.id && i.title) chapters.set(String(i.id), String(i.title));
           });
-          
-          totalChapters = firstPage.total || list.length;
-          hasMoreChapters = list.length === 50;
-        } catch (e) {
-          console.warn('加载章节失败:', e);
+          if (list.length < 50) break;
+          page++;
         }
-        
-        const tags = {
-          类型: (data.tags || "").split(",").filter(Boolean),
-          状态: data.status === 0 ? "连载中" : data.status === 1 ? "已完结" : "未知",
-          人气: data.hot ? `🔥 ${data.hot}` : "未知",
-        };
-        
-        if (totalChapters > 0) {
-          tags.总章节 = `${totalChapters}话`;
-        }
-        
         return new ComicDetails({
           title: String(data.title || "未知标题"),
           subTitle: String(data.author || "未知作者"),
           cover: String(data.cover || data.pic || ""),
-          tags: tags,
-          chapters: chapters,
+          tags: {
+            类型: (data.tags || "").split(",").filter(Boolean),
+            状态: data.status === 0 ? "连载中" : data.status === 1 ? "已完结" : "未知",
+            人气: data.hot ? `🔥 ${data.hot}` : "未知",
+          },
+          chapters,
           description: String(data.intro || data.description || "暂无简介"),
           updateTime: data.editTime
             ? new Date(data.editTime * 1000).toLocaleDateString("zh-CN")
             : "未知",
-          _comicId: data.id,
-          _domain: domain,
-          _totalChapters: totalChapters,
-          _hasMoreChapters: hasMoreChapters,
-          _loadedPage: 1,
         });
       });
-    },
-
-    loadMoreChapters: async (comicDetails, page) => {
-      const comicId = comicDetails._comicId;
-      const domain = comicDetails._domain;
-      
-      if (!comicId) {
-        return { chapters: new Map(), hasMore: false, nextPage: page };
-      }
-      
-      try {
-        const res = await this.fetchJson(`${domain}/api/comic/chapter`, {
-          params: { comicId: comicId, page: page, pageSize: 50 },
-        });
-        
-        const list = res.data || [];
-        const newChapters = new Map();
-        list.forEach(i => {
-          if (i.id && i.title) newChapters.set(String(i.id), String(i.title));
-        });
-        
-        return {
-          chapters: newChapters,
-          hasMore: list.length === 50,
-          nextPage: page + 1,
-        };
-      } catch (e) {
-        return { chapters: new Map(), hasMore: false, nextPage: page };
-      }
     },
 
     loadEp: async (comicId, epId) => {
       return await this.requestWithRetry(async (domain) => {
         const url = `${domain}/api/comic/image/${epId}`;
-        
         for (let i = 0; i < this.imageSources.length; i++) {
           const source = this.imageSources[(this.currentImageSourceIndex + i) % this.imageSources.length];
           try {
-            const pagePromises = [1, 2, 3].map(page =>
-              this.fetchJson(url, {
+            const images = [];
+            let page = 1;
+            while (true) {
+              const res = await this.fetchJson(url, {
                 params: { page, pageSize: 25, imageSource: source },
-              }).catch(() => ({ data: { images: [] } }))
-            );
-            
-            const results = await Promise.all(pagePromises);
-            const allImages = [];
-            let hasMore = false;
-            
-            results.forEach((res) => {
+              });
               const list = res.data?.images || [];
-              if (list.length === 25) hasMore = true;
-              allImages.push(...list.map(i => String(i.url || "")).filter(Boolean));
-            });
-            
-            if (hasMore) {
-              let page = 4;
-              while (true) {
-                const res = await this.fetchJson(url, {
-                  params: { page, pageSize: 25, imageSource: source },
-                });
-                const list = res.data?.images || [];
-                if (!list.length) break;
-                allImages.push(...list.map(i => String(i.url || "")).filter(Boolean));
-                if (list.length < 25) break;
-                page++;
-              }
+              if (!list.length) break;
+              images.push(...list.map(i => String(i.url || "")).filter(Boolean));
+              if (list.length < 25) break;
+              page++;
             }
-            
-            if (allImages.length) {
+            if (images.length) {
               this.currentImageSourceIndex = (this.imageSources.indexOf(source) + 1) % this.imageSources.length;
-              return { images: allImages };
+              return { images };
             }
           } catch (_) {}
         }
