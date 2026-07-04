@@ -6,7 +6,7 @@
 class ManWaAi extends ComicSource {
   name = "综合（推荐版）";
   key = "manwaai";
-  version = "1.6.0";
+  version = "1.6.1";  // 版本升级，强制刷新缓存
   minAppVersion = "1.4.0";
   url = "https://github.com/dcasspec/meow/raw/refs/heads/main/zh111.js";
 
@@ -27,12 +27,11 @@ class ManWaAi extends ComicSource {
   // 当前使用的域名索引（自动切换）
   _currentIndex = 0;
 
-  // ========== 5图源（固定，无需修改） ==========
+  // ========== ✅ 已更新为当前有效图源（仅四个） ==========
   imageSources = [
-    "https://tu.mwzu.cc",
     "https://svip.mwtt.cc",
-    "https://mg.mwre.cc",
-    "https://fm.mwtt.cc",
+    "https://tu.mwzu.cc",
+    "https://tu.mwla.cc",
     "https://img.mwzu.cc"
   ];
   currentImageSourceIndex = 0;
