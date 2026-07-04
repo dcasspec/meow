@@ -1,20 +1,20 @@
 class NewComicSource extends ComicSource {
     name = "搜索（推荐版）"
     key = "mhtmh"
-    version = "2.5.0" // 版本号升级
+    version = "2.3.1"
     minAppVersion = "1.0.0"
     description = '韩漫很全|主域名错开mwuu|5图源自适应轮换'
     url = "https://github.com/dcasspec/meow/raw/refs/heads/main/ss111.js"
 
-    // ★★★ 根据您的策略：主域名错开，优先使用 mwuu.cc ★★★
+    // 主域名策略（不变）
     backupDomains = [
-        "https://mwuu.cc",      // 主力（与综合版的 manwayu 错开）
-        "https://manwayu.cc",   // 备用1
-        "https://manware.cc"    // 备用2
+        "https://mwuu.cc",
+        "https://manwayu.cc",
+        "https://manware.cc"
     ];
     _currentIndex = 0;
 
-    // ========== 极速获取域名（无延迟） ==========
+    // ========== 域名切换逻辑 ==========
     getAvailableDomain() {
         return this.backupDomains[this._currentIndex];
     }
@@ -24,7 +24,6 @@ class NewComicSource extends ComicSource {
 
     // ========== 初始化 ==========
     init() {
-        // 重试包装器：域名失败自动切换
         this.requestWithRetry = async (fn, maxRetries = this.backupDomains.length) => {
             for (let attempt = 0; attempt < maxRetries; attempt++) {
                 try {
@@ -37,6 +36,7 @@ class NewComicSource extends ComicSource {
         };
     }
 
+    // ========== 工具方法 ==========
     formateData(timestamp) {
         const date = new Date(timestamp * 1000);
         const year = date.getFullYear();
@@ -214,28 +214,31 @@ class NewComicSource extends ComicSource {
             });
         },
 
-        // ★★★ 图源升级：优先使用您选定的，失败后自动轮换其余4个 ★★★
+        // ★★★ 图源加载：白名单校验，自动轮换 ★★★
         loadEp: async (comicId, epId) => {
             return await this.requestWithRetry(async (domain) => {
                 let ep = epId.split('_')[0]
                 let id = ep.split('/').pop()
                 let picCount = epId.split('_')[1]
 
-                // 1. 获取用户在设置中选定的首选图源
-                const preferred = this.loadSetting('image_source');
-                // 2. 定义全部5个图源（去重，确保首选在最前面）
-                const allSources = [
-                    preferred,
+                // 定义当前全部有效图源（白名单）
+                const validSources = [
                     'https://svip.mwtt.cc/',
-                    'https://mg.mwre.cc/',
-                    'https://fm.mwtt.cc/',
+                    'https://tu.mwzu.cc/',
+                    'https://tu.mwla.cc/',
                     'https://img.mwzu.cc/'
                 ];
-                // 去重（防止首选与后面重复）
-                const uniqueSources = [...new Set(allSources)];
+                // 获取用户首选，若不在白名单内则强制使用默认（tu.mwzu.cc）
+                let preferred = this.loadSetting('image_source');
+                if (!validSources.includes(preferred)) {
+                    preferred = 'https://tu.mwzu.cc/'; // 默认有效图源
+                }
+
+                // 构建去重的尝试顺序：首选在前，其余有效图源依次追加
+                const allSources = [preferred, ...validSources.filter(s => s !== preferred)];
 
                 let lastError = null;
-                for (const source of uniqueSources) {
+                for (const source of allSources) {
                     try {
                         let res = await Network.get(
                             `${domain}/api/comic/image/${id}?page=1&page_size=${picCount}&image_source=${source}`,
@@ -247,15 +250,12 @@ class NewComicSource extends ComicSource {
                         if (res.status !== 200) throw new Error("HTTP " + res.status);
                         let body = JSON.parse(res.body)
                         if (body["code"] != 200) throw new Error("API error: " + body["msg"]);
-                        // 成功则返回图片
                         return { images: body["data"].images.map(res => res.url) }
                     } catch (e) {
                         lastError = e;
-                        // 当前图源失败，继续尝试下一个
                         continue;
                     }
                 }
-                // 所有图源均失败
                 throw lastError || new Error("所有图源均失效");
             });
         },
@@ -263,7 +263,7 @@ class NewComicSource extends ComicSource {
         onImageLoad: (url) => ({
             url: url,
             headers: {
-                "Referer": "https://mwuu.cc/",  // 改为与主力域名一致
+                "Referer": "https://mwuu.cc/",
                 "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1"
             }
         }),
@@ -277,6 +277,7 @@ class NewComicSource extends ComicSource {
         matchBriefIdRegex: "https://mwuu.cc/(\\d+)/"
     }
 
+    // ========== 设置项（图源选项已更新） ==========
     settings = {
         search_api: {
             title: "搜索方式",
@@ -288,17 +289,17 @@ class NewComicSource extends ComicSource {
             default: 'baseAPI'
         },
         image_source: {
-            title: "首选图源（失败自动换其他4个）",
+            title: "首选图源（失败自动换其他3个）",
             type: "select",
             options: [
-                { value: 'https://tu.mwzu.cc/', text: '图源1' },
-                { value: 'https://svip.mwtt.cc/', text: '图源2' },
-                { value: 'https://mg.mwre.cc/', text: '图源3' },
-                { value: 'https://fm.mwtt.cc/', text: '图源4' },
-                { value: 'https://img.mwzu.cc/', text: '图源5' }
+                { value: 'https://svip.mwtt.cc/', text: '图源1' },
+                { value: 'https://tu.mwzu.cc/', text: '图源2' },
+                { value: 'https://tu.mwla.cc/', text: '图源3' },
+                { value: 'https://img.mwzu.cc/', text: '图源4' }
             ],
             default: 'https://tu.mwzu.cc/'
         }
     }
 }
+
 var comicSource = new NewComicSource();
